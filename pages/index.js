@@ -1,23 +1,24 @@
-import Blog from '@/components/Home/Blog'
-import Brands from '@/components/Home/Brands'
-import Core from '@/components/Home/Core'
-import Hero from '@/components/Home/Hero'
-import Quests from '@/components/Home/Quests'
-import Services from '@/components/Home/Services'
 import React from 'react'
+import Head from 'next/head'
+import Header from '@/components/Home/Header'
+import WhatWeDo from '@/components/Home/WhatWeDo'
+import OurCoreValues from '@/components/Home/OurCoreValues'
+import BlogSection from '@/components/Home/BlogSection'
 
-function home() {
+function Home() {
   return (
     <>
-        <Hero/>
-        <Services/>
-        <Quests/>
-        <Core/>
-        <Brands/>
-        <Blog/>
+      <Head>
+        <title>TakaCycle | Home</title>
+      </Head>
+      <div>
+        <Header/>
+        <WhatWeDo/>
+        <OurCoreValues/>
+        <BlogSection/>
+      </div>
     </>
-
   )
 }
 
-export default home
+export default Home

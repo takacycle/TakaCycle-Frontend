@@ -26,14 +26,14 @@ function Navbar() {
 
   return (
     <>
-      <header className="bg-white">
+      <header className="bg-white mt-5">
         <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="md:flex md:items-center md:gap-12">
               <Link className="block text-teal-600" href="/">
                 <span className="sr-only">Home</span>
                 <Image
-                  src={"/assets/logo.svg"}
+                  src={"/assets/Logo.svg"}
                   alt="logo"
                   width={100}
                   height={100}
@@ -45,14 +45,14 @@ function Navbar() {
             {/* Desktop Menu */}
             <div className="hidden md:block">
               <nav aria-label="Global">
-                <ul className="flex items-center gap-6 text-sm bg-brandFadedGreen py-4 px-6 rounded-full">
+                <ul className="flex items-center gap-8 text-sm  py-3 px-6 rounded-full border-2 border-black">
                   {navLinks.map((link) => (
                     <li key={link.name}>
                       <Link
                         href={link.path}
                         className={`text-black font-alton transition hover:text-gray-500/75 ${
                           router.pathname === link.path
-                            ? "font-bold"
+                            ? "text-brandGreen font-bold"
                             : "font-normal"
                         }`}
                       >
@@ -69,10 +69,10 @@ function Navbar() {
               <div className="sm:flex sm:gap-4">
                 <div className="hidden sm:flex">
                   <Link
-                    className="rounded-full bg-brandLightGreen px-5 py-2.5 text-sm font-alton font-normal text-white"
+                    className="rounded-full bg-brandGreen hover:bg-brandTextGreen px-5 py-4 text-sm font-alton font-normal text-white"
                     href="#"
                   >
-                    Support us
+                    Support Us
                   </Link>
                 </div>
               </div>
