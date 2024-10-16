@@ -15,6 +15,7 @@ module.exports = {
         brandLightGreen: "#EBF9ED",
         brandFadedGreen: "#E9FCCF",
         brandTextGreen: "#1F4520",
+        brandDarkGreen:"#15491B"
       },
     },
   },

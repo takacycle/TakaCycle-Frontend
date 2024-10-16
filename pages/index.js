@@ -6,6 +6,7 @@ import OurCoreValues from '@/components/Home/OurCoreValues'
 import BlogSection from '@/components/Home/BlogSection'
 import DonateSection from '@/components/Home/DonateSection'
 import Newsletter from '@/components/Home/NewsLetter'
+import Footer from '@/components/Footer'
 
 function Home() {
   return (
@@ -20,6 +21,7 @@ function Home() {
         <BlogSection/>
         <DonateSection/>
         <Newsletter/>
+        <Footer/>
       </div>
     </>
   )
