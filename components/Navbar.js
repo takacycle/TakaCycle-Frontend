@@ -33,7 +33,7 @@ function Navbar() {
               <Link className="block text-teal-600" href="/">
                 <span className="sr-only">Home</span>
                 <Image
-                  src={"/assets/Logo.svg"}
+                  src={"/assets/brand-logo.svg"}
                   alt="logo"
                   width={100}
                   height={100}
