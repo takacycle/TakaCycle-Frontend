@@ -69,7 +69,7 @@ function WhatWeDo() {
         <section className="bg-white pb-5 mt-4">
           <div>
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-center sm:text-left  sm:mb-0">
+              <h2 className="px-5 text-2xl sm:text-3xl font-bold text-center sm:text-left  sm:mb-0">
                 What We Do
               </h2>
               <div className="hidden sm:flex items-center space-x-2">
