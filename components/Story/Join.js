@@ -5,7 +5,7 @@ import { ArrowCircleRight2 } from "iconsax-react";
 
 function Join() {
     return (
-        <div className='pt-10'>
+        <div className='pt-10 pb-10'>
         <div className="bg-brandFadedGreen rounded-lg p-12 container mx-auto px-4 flex flex-col lg:flex-row lg:items-center lg:space-x-8">
           {/* Text Content */}
           <div className="lg:w-1/2 mb-6 lg:mb-0 text-center lg:text-left flex flex-col lg:justify-center px-10">

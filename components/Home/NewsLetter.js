@@ -33,7 +33,7 @@ function Newsletter() {
   }, [errorMessage]);
 
   return (
-    <section className="bg-green-100 p-5 lg:p-20 rounded-lg">
+    <section className=" mb-10 bg-green-100 p-5 lg:p-20 rounded-lg">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-8">
         <div>
           <div className="mb-6 lg:mb-0">
