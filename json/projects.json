@@ -3,31 +3,36 @@
       "id": 1,
       "title": "Community Climate Champions Project",
       "description": "TakaCycle's community recycling drives in Ghana are at the heart of our efforts to turn waste management into a community-driven force for good fostering a culture of recycling.",
-      "image": "/assets/p1.svg"
+      "image": "/assets/p1.svg",
+      "status": "ongoing"
     },
     {
       "id": 2,
       "title": "The Captain Planet Project",
       "description": "Education is a powerful tool for change. Our workshops on waste segregation are designed to educate school kids (our heroes)  on the importance of proper waste management.",
-      "image": "/assets/p2.svg"
+      "image": "/assets/p2.svg",
+      "status": "ongoing"
     },
     {
       "id": 3,
       "title": "The TakaCash Project",
       "description": "TakaCash is an innovative recycling platform that allows individuals to exchange their recyclable waste for money while contributing to a larger environmental cause.",
-      "image": "/assets/p3.svg"
+      "image": "/assets/p3.svg",
+      "status": "completed"
     },
     {
       "id": 4,
       "title": "Smart Bin Implementation Project",
       "description": "Deploying IoT-enabled smart bins across major cities to optimize waste collection routes and improve recycling rates.",
-      "image": "/assets/visionbg.svg"
+      "image": "/assets/visionbg.svg",
+    "status": "ongoing"
     },
     {
       "id": 5,
       "title": "Community Composting Initiative",
       "description": "Converting organic waste into valuable compost through community-managed composting stations, supporting local urban farming.",
-      "image": "/assets/missionbg.svg"
+      "image": "/assets/missionbg.svg",
+       "status": "completed"
     }
   ]
   
