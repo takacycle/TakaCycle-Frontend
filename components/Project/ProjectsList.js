@@ -87,7 +87,7 @@ function ProjectsList() {
               <span
                 className={`mb-3 ${
                   project.status === "completed" ? "bg-green-600" : "bg-red-600"
-                } px-5 py-1 text-white rounded-full`}
+                } px-5 py-1 text-white rounded-full text-sm`}
               >
                 {project.status}
               </span>
