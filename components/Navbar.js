@@ -106,36 +106,40 @@ function Navbar() {
         {/* Mobile Menu (Popup Card) */}
         {isMenuOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-          <div className="fixed inset-0 z-50 p-6 flex items-center justify-center">
-            <nav className="relative bg-white p-12 rounded-lg w-72">
-              {/* Close button at the far right end */}
-              <button
-                onClick={closeMenu}
-                className="absolute top-4 right-4 text-gray-600"
-              >
-                <CloseCircle size="32" variant="Bold" className="text-slate-700" />
-              </button>
-        
-              <ul className="flex flex-col gap-4 items-center justify-center text-center">
-                {navLinks.map((link) => (
-                  <li key={link.name}>
-                    <Link
-                      href={link.path}
-                      className={`text-lg block text-black transition hover:text-gray-500/75 ${
-                        router.pathname === link.path ? "font-bold" : "font-normal"
-                      }`}
-                      onClick={closeMenu} // Close menu on link click
-                    >
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </div>
-        
+            <div className="fixed inset-0 z-50 p-6 flex items-center justify-center">
+              <nav className="relative bg-white p-12 rounded-lg w-72">
+                {/* Close button at the far right end */}
+                <button
+                  onClick={closeMenu}
+                  className="absolute top-4 right-4 text-gray-600"
+                >
+                  <CloseCircle
+                    size="32"
+                    variant="Bold"
+                    className="text-slate-700"
+                  />
+                </button>
 
+                <ul className="flex flex-col gap-4 items-center justify-center text-center">
+                  {navLinks.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        href={link.path}
+                        className={`text-lg block text-black transition hover:text-gray-500/75 ${
+                          router.pathname === link.path
+                            ? "font-bold"
+                            : "font-normal"
+                        }`}
+                        onClick={closeMenu} // Close menu on link click
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+          </div>
         )}
       </header>
     </>
