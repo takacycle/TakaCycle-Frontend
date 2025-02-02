@@ -12,7 +12,7 @@ function Home() {
   return (
     <>
       <Head>
-        <title>TakaCycle | Home</title>
+        <title>TakaCycle</title>
       </Head>
       <div>
         <Header/>
