@@ -1,4 +1,4 @@
-import React, { useState ,useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -6,7 +6,9 @@ import { useRouter } from 'next/router';
 import { auth, firestore } from '@/firebase/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { EyeIcon, EyeOffIcon } from '@heroicons/react/solid'; // Import eye icons
+import { EyeIcon, EyeOffIcon } from '@heroicons/react/solid';
+import { serverTimestamp } from "firebase/firestore";
+
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,61 +18,108 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-      useEffect(() => {
-          if (error) {
-              const timer = setTimeout(() => {
-                  setError(null);
-              }, 5000);
-              return () => clearTimeout(timer);
-          }
-      }, [error]);
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleLogin = async (event) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
-
+  
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      if (user.emailVerified) {
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-          const registrationData = localStorage.getItem("registrationData");
-          let userData = { firstName: "", lastName: "", gender: "" };
-
-          if (registrationData) {
-            try {
-              userData = JSON.parse(registrationData);
-            } catch (error) {
-              console.error("Error parsing registration data:", error);
-            }
-          }
-
-          await setDoc(userDocRef, {
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            gender: userData.gender,
-            email: user.email,
-          });
-
-          localStorage.removeItem("registrationData");
-        }
-
-        router.push('/portal'); // Redirect to portal
-      } else {
+  
+      // ✅ Force Firebase to refresh user info
+      await user.reload();
+  
+      console.log("✅ User logged in:", user.email, "UID:", user.uid);
+  
+      if (!user.emailVerified) {
         setError('⚠️ Please verify your email before logging in.');
+        setLoading(false);
+        return;
       }
+  
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+  
+      console.log("📌 Checking if user document exists...");
+  
+      // ✅ Initialize userData properly
+      let userData = { firstName: "N/A", lastName: "N/A", lastLogin: null };
+  
+      if (!userDoc.exists()) {
+        console.log("🚀 User document does not exist, creating a new one...");
+        const registrationData = localStorage.getItem("registrationData");
+  
+        if (registrationData) {
+          try {
+            userData = JSON.parse(registrationData);
+          } catch (error) {
+            console.error("⛔ Error parsing registration data:", error);
+          }
+        }
+  
+        await setDoc(userDocRef, {
+          firstName: userData.firstName || "N/A",
+          lastName: userData.lastName || "N/A",
+          email: user.email,
+          emailVerified: user.emailVerified,
+          status: 'online',
+          lastLogin: serverTimestamp(),
+        }, { merge: true });
+  
+        localStorage.removeItem("registrationData");
+  
+      } else {
+        console.log("🔄 User document exists, updating status, lastLogin, and emailVerified...");
+        
+        // ✅ Extract user data from existing Firestore document
+        const existingUserData = userDoc.data();
+        userData = {
+          firstName: existingUserData.firstName || "N/A",
+          lastName: existingUserData.lastName || "N/A",
+          lastLogin: new Date().toISOString()
+        };
+  
+        await setDoc(userDocRef, {
+          status: 'online',
+          lastLogin: serverTimestamp(),
+          emailVerified: user.emailVerified,
+        }, { merge: true });
+  
+        console.log("✅ User document updated successfully!");
+      }
+  
+      // ✅ Save user info to localStorage
+      localStorage.setItem(
+        'loggedIn',
+        JSON.stringify({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          lastLogin: userData.lastLogin,
+        })
+      );
+  
+      console.log("📝 User data saved to localStorage:", userData);
+  
+      // Redirect the user after successful login
+      router.push('/portal');
+  
     } catch (error) {
+      console.error("🔥 Login error:", error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <>
       <Head>

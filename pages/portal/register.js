@@ -4,8 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { auth } from "@/firebase/firebase";
-import { EyeIcon, EyeOffIcon } from '@heroicons/react/solid'; // Import eye icons
+import { auth, firestore } from "@/firebase/firebase";
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { EyeIcon, EyeOffIcon } from '@heroicons/react/solid';
 
 function Register() {
     const [firstName, setFirstName] = useState('');
@@ -18,16 +19,14 @@ function Register() {
     const [message, setMessage] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [loading, setLoading] = useState(false); // Loading state
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    // Function to validate password complexity
     const validatePassword = (password) => {
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$/;
         return regex.test(password);
     };
 
-    // Function to hide errors after 5 seconds
     useEffect(() => {
         if (error) {
             const timer = setTimeout(() => {
@@ -41,36 +40,60 @@ function Register() {
         event.preventDefault();
         setError(null);
         setMessage(null);
-        setLoading(true); // Show spinner
+        setLoading(true);
 
         if (password !== confirmPassword) {
             setError('Passwords do not match');
-            setLoading(false); // Stop spinner
+            setLoading(false);
             return;
         }
 
         if (!validatePassword(password)) {
             setError("Password must be at least 8 characters, including uppercase, lowercase, number, and special character.");
-            setLoading(false); // Stop spinner
+            setLoading(false);
             return;
         }
 
         try {
-            // Firebase authentication
+            // Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            
+            // Send email verification
             await sendEmailVerification(user);
 
-            // Store user data (local storage, state, or database)
+            // Create user document in Firestore with additional fields
+            const userDocRef = doc(firestore, "users", user.uid);
+            await setDoc(userDocRef, {
+                firstName,
+                lastName,
+                gender,
+                email,
+                status: 'offline', // Initial status
+                lastLogin: null, // Will be updated on first login
+                lastSeen: serverTimestamp(), // Current timestamp
+                createdAt: serverTimestamp(),
+                emailVerified: false // Will be updated when email is verified
+            });
+
+            // Store registration data temporarily
             localStorage.setItem(
                 'registrationData',
-                JSON.stringify({ firstName, lastName, gender, email })
+                JSON.stringify({ 
+                    firstName, 
+                    lastName, 
+                    gender, 
+                    email,
+                    status: 'offline',
+                    lastLogin: null,
+                    lastSeen: new Date().toISOString()
+                })
             );
 
             setMessage('Registration successful! Please check your email for verification.');
-            setLoading(false); // Stop spinner
+            setLoading(false);
 
-            // Clear form fields
+            // Clear form
             setFirstName('');
             setLastName('');
             setGender('');
@@ -78,7 +101,7 @@ function Register() {
             setPassword('');
             setConfirmPassword('');
 
-            // Redirect to login or dashboard after a delay
+            // Redirect to login page after delay
             setTimeout(() => {
                 router.push('/portal/login');
             }, 2000);
@@ -88,10 +111,9 @@ function Register() {
             } else {
                 setError("An Unknown Error Occurred");
             }
-            setLoading(false); // Stop spinner
+            setLoading(false);
         }
     };
-
     return (
         <>
             <Head>

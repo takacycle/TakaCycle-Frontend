@@ -3,20 +3,22 @@ import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, firestore } from '@/firebase/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import Image from 'next/image';
 import { HomeIcon, PencilIcon, FolderIcon, LogoutIcon, PlusIcon } from '@heroicons/react/solid';
 import CreateBlog from './blog/create';
 import EditBlog from './blog/edit';
 import UpdateBlogPage from './blog/updateBlogPage';
+import Dashboard from './home';
+import BlogCategory from './blog/category';
 
 
 function HomePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [activePage, setActivePage] = useState("Home");
+  const [activePage, setActivePage] = useState("Dashboard");
   const [expandedMenu, setExpandedMenu] = useState(null);
 
   useEffect(() => {
@@ -61,9 +63,47 @@ function HomePage() {
   }, [router]);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    localStorage.clear();
-    router.push('/portal/login');
+    setLoading(true);
+
+    try {
+      const currentUser = auth.currentUser;
+
+      if (currentUser) {
+
+        // Update user document with offline status
+        const userDocRef = doc(firestore, "users", currentUser.uid);
+
+        await setDoc(userDocRef, {
+          status: 'offline',
+          lastSeen: serverTimestamp(),
+        }, { merge: true });
+
+
+        // Sign out from Firebase
+        await signOut(auth);
+
+        // Clear any stored data
+        localStorage.clear();
+
+        // Redirect user
+        router.push('/portal/login');
+      } else {
+        router.push('/portal/login');
+      }
+    } catch (error) {
+      console.error(error);
+
+      // Attempt force logout even if there's an error
+      try {
+        await signOut(auth);
+        localStorage.clear();
+        router.push('/portal/login');
+      } catch (finalError) {
+        console.error(finalError);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
 
@@ -84,11 +124,11 @@ function HomePage() {
   return (
     <>
       <Head>
-        <title>TakaCycle | Dashboard</title>
+        <title>TakaCycle | Portal</title>
       </Head>
 
       {/* Main Container */}
-      <div className="flex h-screen bg-gray-100">
+      <div className="flex h-screen ">
 
         {/* Sidebar - Fixed 20% */}
         <div className="w-1/5 bg-white flex flex-col justify-between fixed h-full p-4">
@@ -100,17 +140,17 @@ function HomePage() {
           {/* Menu */}
           <nav className="mt-4 flex flex-col gap-2">
             <button
-              onClick={() => setActivePage("Home")}
-              className={`flex items-center gap-2 p-3 rounded-lg text-left w-full ${activePage === "Home" ? "bg-brandGreen text-white" : ""}`}
+              onClick={() => setActivePage("Dashboard")}
+              className={`flex items-center gap-2 p-3 rounded-lg text-left w-full text-sm font-medium text-gray-700 ${activePage === "Dashboard" ? "bg-brandTextGreen text-white" : "bg-brandFadedGreen text-brandTextGreen"}`}
             >
               <HomeIcon className="w-5 h-5" />
-              Home
+              Dashboard
             </button>
 
             {/* Blog Section */}
             <button
               onClick={() => setExpandedMenu(expandedMenu === "Blog" ? null : "Blog")}
-              className={`flex items-center justify-between p-3 rounded-lg w-full ${expandedMenu === "Blog" ? "" : ""}`}
+              className={`flex items-center justify-between p-3 rounded-lg w-full text-sm font-medium text-gray-700 ${expandedMenu === "Blog" ? "" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <PencilIcon className="w-5 h-5" />
@@ -119,17 +159,18 @@ function HomePage() {
               <span>{expandedMenu === "Blog" ? "▲" : "▼"}</span>
             </button>
             {expandedMenu === "Blog" && (
-              <div className="pl-6 flex flex-col">
-                <button onClick={() => setActivePage("Create Blog")} className={`p-2 text-left ${activePage === "Create Blog" ? "bg-brandGreen text-white rounded-md" : ""}`}>Create Blog</button>
-                <button onClick={() => setActivePage("Edit Blog")} className={`p-2 text-left ${activePage === "Edit Blog" ? "bg-brandGreen text-white rounded-md" : ""}`}>Edit Blog</button>
-                <button onClick={() => setActivePage("Update Blog Page")} className={`p-2 text-left ${activePage === "Update Blog Page" ? "bg-brandGreen text-white rounded-md" : ""}`}>Update Blog Page</button>
+              <div className="pl-6 flex flex-col space-y-1">
+                <button onClick={() => setActivePage("Blog Categories")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Blog Categories" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Blog categories</button>
+                <button onClick={() => setActivePage("Create Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Create Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create Blog</button>
+                <button onClick={() => setActivePage("Edit Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Edit Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Edit Blog</button>
+                <button onClick={() => setActivePage("Update Blog Page")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Update Blog Page" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Update Blog Page</button>
               </div>
             )}
 
             {/* Project Section */}
             <button
               onClick={() => setExpandedMenu(expandedMenu === "Project" ? null : "Project")}
-              className={`flex items-center justify-between p-3 rounded-lg w-full ${expandedMenu === "Project" ? "" : ""}`}
+              className={`flex items-center justify-between p-3 rounded-lg w-full text-sm font-medium text-gray-700 ${expandedMenu === "Project" ? "" : ""}`}
             >
               <div className="flex items-center gap-2">
                 <FolderIcon className="w-5 h-5" />
@@ -138,10 +179,10 @@ function HomePage() {
               <span>{expandedMenu === "Project" ? "▲" : "▼"}</span>
             </button>
             {expandedMenu === "Project" && (
-              <div className="pl-6 flex flex-col">
-                <button onClick={() => setActivePage("Create Project")} className={`p-2 text-left ${activePage === "Create Project" ? "bg-brandFadedGreen" : ""}`}>Create Project</button>
-                <button onClick={() => setActivePage("Edit Project")} className={`p-2 text-left ${activePage === "Edit Project" ? "bg-brandFadedGreen" : ""}`}>Edit Project</button>
-                <button onClick={() => setActivePage("Update Project Page")} className={`p-2 text-left ${activePage === "Update Project Page" ? "bg-brandFadedGreen" : ""}`}>Update Project Page</button>
+              <div className="pl-6 flex flex-col text-sm font-medium text-gray-700 space-y-1">
+                <button onClick={() => setActivePage("Create Project")} className={`p-2 text-left ${activePage === "Create Project" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create Project</button>
+                <button onClick={() => setActivePage("Edit Project")} className={`p-2 text-left ${activePage === "Edit Project" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Edit Project</button>
+                <button onClick={() => setActivePage("Update Project Page")} className={`p-2 text-left ${activePage === "Update Project Page" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Update Project Page</button>
               </div>
             )}
           </nav>
@@ -162,11 +203,15 @@ function HomePage() {
 
           {/* Top Header (Fixed) with Logout Button */}
           <div className="bg-white fixed w-4/5 p-4 z-10 flex justify-between items-center">
-            <h1 className="text-lg font-semibold">{activePage}</h1>
+            <h1 className="text-xl font-bold">{activePage}</h1>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-            >
+              className="p-2 mb-2 flex w-36 h-10
+              mr-4 py-2 px-4
+              rounded-md border-0
+              text-sm font-semibold
+              bg-brandFadedGreen text-brandTextGreen
+              hover:bg-brandTextGreen hover:text-white">
               <LogoutIcon className="w-5 h-5" />
               Logout
             </button>
@@ -174,7 +219,8 @@ function HomePage() {
 
           {/* Page Content */}
           <div className="p-6 mt-16">
-            {activePage === "Home" && <div className="h-96 rounded-lg bg-gray-200 flex items-center justify-center">Home</div>}
+            {activePage === "Dashboard" && <Dashboard />}
+            {activePage === "Blog Categories" && <BlogCategory />}
             {activePage === "Create Blog" && <CreateBlog />}
             {activePage === "Edit Blog" && <EditBlog />}
             {activePage === "Update Blog Page" && <UpdateBlogPage />}
