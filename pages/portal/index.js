@@ -9,7 +9,6 @@ import Image from 'next/image';
 import { HomeIcon, PencilIcon, FolderIcon, LogoutIcon, PlusIcon } from '@heroicons/react/solid';
 import CreateBlog from './blog/create';
 import EditBlog from './blog/edit';
-import UpdateBlogPage from './blog/updateBlogPage';
 import Dashboard from './home';
 import BlogCategory from './blog/category';
 
@@ -163,7 +162,7 @@ function HomePage() {
                 <button onClick={() => setActivePage("Blog Categories")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Blog Categories" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Blog categories</button>
                 <button onClick={() => setActivePage("Create Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Create Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create Blog</button>
                 <button onClick={() => setActivePage("Edit Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Edit Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Edit Blog</button>
-                <button onClick={() => setActivePage("Update Blog Page")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Update Blog Page" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Update Blog Page</button>
+            
               </div>
             )}
 
@@ -223,7 +222,6 @@ function HomePage() {
             {activePage === "Blog Categories" && <BlogCategory />}
             {activePage === "Create Blog" && <CreateBlog />}
             {activePage === "Edit Blog" && <EditBlog />}
-            {activePage === "Update Blog Page" && <UpdateBlogPage />}
           </div>
         </div>
       </div>
