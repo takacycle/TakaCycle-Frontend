@@ -85,34 +85,37 @@ function BlogCategory() {
     }));
   };
 
-  // Handle category selection from dropdown
-  const handleCategorySelect = (e) => {
-    const categoryId = e.target.value;
-    setSelectedCategory(categoryId);
-    setShowDeleteConfirm(false);
-    
-    if (categoryId === "") {
-      // Reset form if "Select category" is chosen
-      setFormData({
-        id: null,
-        name: "",
-        description: "",
-        createdBy: `${user.firstName} ${user.lastName}`
-      });
-      return;
-    }
+// Handle category selection from dropdown
+const handleCategorySelect = (e) => {
+  const categoryId = e.target.value;
+  setSelectedCategory(categoryId);
+  setShowDeleteConfirm(false);
+  
+  if (categoryId === "") {
+    // Reset form if "Select category" is chosen
+    setFormData({
+      id: null,
+      name: "",
+      description: "",
+      createdBy: `${user.firstName} ${user.lastName}`
+    });
+    return;
+  }
 
-    // Find the selected category and populate form
-    const selectedCat = categories.find(cat => cat.id === categoryId);
-    if (selectedCat) {
-      setFormData({
-        id: selectedCat.id,
-        name: selectedCat.name,
-        description: selectedCat.description,
-        createdBy: selectedCat.createdBy
-      });
-    }
-  };
+  // Find the selected category and populate form
+  const selectedCat = categories.find(cat => cat.id === categoryId);
+  if (selectedCat) {
+    setFormData({
+      id: selectedCat.id,
+      name: selectedCat.name,
+      description: selectedCat.description,
+      createdBy: selectedCat.createdBy
+    });
+    
+    // Instead of logging formData here, we can log the actual selectedCat
+    console.log("Selected category data:", selectedCat);
+  }
+};
 
   // Handle form reset
   const resetForm = () => {
@@ -209,14 +212,7 @@ function BlogCategory() {
         <div className="h-28 p-4 flex flex-col justify-center">
           <div className="h-20 p-4 flex justify-between items-center">
             <h1 className="text-xl font-bold mb-4">Add/ Edit Blog Categories</h1>
-            <div>
-              <button 
-                onClick={resetForm}
-                className="p-2 mb-2 mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
-              >
-                Create New Category
-              </button>
-            </div>
+
           </div>
           {error && <p className="bg-red-500 block text-sm font-medium text-white rounded-md p-2">{error}</p>}
           {message && <p className="bg-green-500 block text-sm font-medium text-white rounded-md p-2">{message}</p>}

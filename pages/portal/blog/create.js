@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { firestore } from "@/firebase/firebase"; 
-import { collection, addDoc, getDocs, updateDoc, doc, serverTimestamp, deleteDoc } from "@firebase/firestore"
+import { firestore } from "@/firebase/firebase";
+import { collection, addDoc, getDocs,doc,updateDoc,deleteDoc, serverTimestamp } from "@firebase/firestore"
 import Link from "next/link"; // Import Link from Next.js
 
 export default function BlogCreator() {
@@ -21,17 +21,23 @@ export default function BlogCreator() {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [blogs, setBlogs] = useState([]);
+  const [selectedBlogId, setSelectedBlogId] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+
+
+  console.log(selectedBlogId)
 
   // New data structure for sections with different content types
   const [sections, setSections] = useState([
-    { 
-      title: "", 
+    {
+      title: "",
       content: [
         { type: "paragraph", value: "", processedContent: null }
-      ] 
+      ]
     }
   ]);
-  
+
   useEffect(() => {
     const storedUser = localStorage.getItem("loggedIn");
     if (storedUser) {
@@ -65,71 +71,191 @@ export default function BlogCreator() {
     }
   }, [message]);
 
-    // Fetch blog categories on component mount
-    useEffect(() => {
-      fetchCategories();
-    }, []);
-  
+  // Fetch blog categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
-    // URL detection regex
-    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+\.[^\s]+)/g;
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
 
-    // Function to process paragraph text and convert URLs to link objects
-    const processParagraphLinks = (text) => {
-      if (!text) return { raw: text, processed: null };
-      
-      // Find all URLs in the text
-      const matches = [...text.matchAll(urlRegex)];
-      
-      if (matches.length === 0) {
-        return { raw: text, processed: null };
-      }
-      
-      // Process the text to replace URLs with link objects
-      let lastIndex = 0;
-      const elements = [];
-      
-      matches.forEach((match, idx) => {
-        const url = match[0];
-        const startIndex = match.index;
-        
-        // Add text before the URL
-        if (startIndex > lastIndex) {
-          elements.push({ type: 'text', content: text.slice(lastIndex, startIndex) });
+
+  // Function to fetch all blogs
+  const fetchBlogs = async () => {
+    setIsLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(firestore, "blogs"));
+      const blogsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setBlogs(blogsData);
+    } catch (err) {
+      console.error("Error fetching blogs:", err);
+      setError("Failed to load blogs.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  // Function to load selected blog
+  const loadBlog = async (blogId) => {
+    if (!blogId) {
+      resetForm();
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const selectedBlog = blogs.find(blog => blog.id === blogId);
+
+      if (selectedBlog) {
+        // Set all form fields
+        setSelectedCategory(selectedBlog.categoryId || "");
+        setCategory(selectedBlog.category || "");
+        setTags(selectedBlog.tags || "");
+        setSlug(selectedBlog.slug || "");
+        setImageURL(selectedBlog.imageUrl || "");
+        setUploadedImage(selectedBlog.imageUrl || "");
+
+        // Set sections
+        if (selectedBlog.sections && selectedBlog.sections.length > 0) {
+          // Transform the sections to match our state structure
+          const formattedSections = selectedBlog.sections.map(section => ({
+            title: section.title || "",
+            content: section.content.map(item => ({
+              type: item.type,
+              value: item.value || "",
+              processedContent: item.processedContent || null
+            }))
+          }));
+          setSections(formattedSections);
         }
-        
-        // Add the URL as a link object
-        // Ensure URL has proper format with http/https
-        const formattedUrl = url.startsWith('www.') ? `https://${url}` : url;
-        elements.push({ type: 'link', url: formattedUrl, text: url });
-        
-        lastIndex = startIndex + url.length;
+
+        setIsEditing(true);
+      }
+    } catch (err) {
+      console.error("Error loading blog:", err);
+      setError("Failed to load blog for editing.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // URL detection regex
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+\.[^\s]+)/g;
+
+  const processParagraphLinks = (text) => {
+    if (!text) return { raw: text, processed: null };
+
+    // Check for manually added links in format [text](url)
+    const manualLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+    // First process manual links and replace them with placeholders
+    let processedText = text;
+    const manualLinks = [];
+
+    processedText = processedText.replace(manualLinkRegex, (match, linkText, url) => {
+      const placeholder = `__MANUAL_LINK_${manualLinks.length}__`;
+      manualLinks.push({ text: linkText, url: url });
+      return placeholder;
+    });
+
+    // Now process auto-detected URLs
+    const matches = [...processedText.matchAll(urlRegex)];
+
+    if (matches.length === 0 && manualLinks.length === 0) {
+      return { raw: text, processed: null };
+    }
+
+    // Process the text
+    let lastIndex = 0;
+    const elements = [];
+
+    // Handle auto-detected URLs
+    matches.forEach((match) => {
+      const url = match[0];
+      const startIndex = match.index;
+
+      // Add text before the URL
+      if (startIndex > lastIndex) {
+        const textBefore = processedText.slice(lastIndex, startIndex);
+
+        // Check if there are manual link placeholders in this text segment
+        const parts = textBefore.split(/(__MANUAL_LINK_\d+__)/);
+
+        parts.forEach(part => {
+          const manualLinkMatch = part.match(/__MANUAL_LINK_(\d+)__/);
+          if (manualLinkMatch) {
+            const linkIndex = parseInt(manualLinkMatch[1]);
+            const manualLink = manualLinks[linkIndex];
+            elements.push({
+              type: 'link',
+              url: manualLink.url.startsWith('http') ? manualLink.url : `https://${manualLink.url}`,
+              text: manualLink.text
+            });
+          } else if (part) {
+            elements.push({ type: 'text', content: part });
+          }
+        });
+      }
+
+      // Add the URL as a link object
+      const formattedUrl = url.startsWith('www.') ? `https://${url}` : url;
+      elements.push({ type: 'link', url: formattedUrl, text: url });
+
+      lastIndex = startIndex + url.length;
+    });
+
+    // Add remaining text after the last URL
+    if (lastIndex < processedText.length) {
+      const textAfter = processedText.slice(lastIndex);
+
+      // Check for manual links in the remaining text
+      const parts = textAfter.split(/(__MANUAL_LINK_\d+__)/);
+
+      parts.forEach(part => {
+        const manualLinkMatch = part.match(/__MANUAL_LINK_(\d+)__/);
+        if (manualLinkMatch) {
+          const linkIndex = parseInt(manualLinkMatch[1]);
+          const manualLink = manualLinks[linkIndex];
+          elements.push({
+            type: 'link',
+            url: manualLink.url.startsWith('http') ? manualLink.url : `https://${manualLink.url}`,
+            text: manualLink.text
+          });
+        } else if (part) {
+          elements.push({ type: 'text', content: part });
+        }
       });
-      
-      // Add remaining text after the last URL
-      if (lastIndex < text.length) {
-        elements.push({ type: 'text', content: text.slice(lastIndex) });
-      }
-      
-      return { raw: text, processed: elements };
-    };
-    // Fetch categories from Firestore
-    const fetchCategories = async () => {
-      setIsLoading(true);
-      try {
-        const querySnapshot = await getDocs(collection(firestore, "blog_categories"));
-        const categoriesData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setCategories(categoriesData);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        setError("Failed to load categories.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    }
+
+    return { raw: text, processed: elements };
+  };
+
+
+
+
+  // Fetch categories from Firestore
+  const fetchCategories = async () => {
+    setIsLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(firestore, "blog_categories"));
+      const categoriesData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCategories(categoriesData);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      setError("Failed to load categories.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle category selection from dropdown
   const handleCategorySelect = (e) => {
@@ -140,25 +266,24 @@ export default function BlogCreator() {
     const selectedCat = categories.find(cat => cat.id === categoryId);
     if (selectedCat) {
       setCategory(
-         selectedCat.name,
+        selectedCat.name,
       );
     }
   }
 
-  const generateSlug = () => {
-    if (!sections[0].title.trim()) {
-      setError("Enter a main Title first to generate a slug for the blog.");
-      return;
+  useEffect(() => {
+    // Only run if the title exists and is not empty
+    if (sections[0]?.title?.trim()) {
+      // Generate slug from first title
+      const formattedSlug = sections[0].title
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
+        .replace(/\s+/g, "-"); // Replace spaces with hyphens
+
+      // Update the slug state
+      setSlug(formattedSlug);
     }
-    
-    // Generate slug from first title
-    const formattedSlug = sections[0].title
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
-      .replace(/\s+/g, "-"); // Replace spaces with hyphens
-  
-    setSlug(formattedSlug);
-  };
+  }, [sections[0]?.title]);
 
   const handleTagChange = (e) => {
     let input = e.target.value;
@@ -173,9 +298,9 @@ export default function BlogCreator() {
 
   // Section management functions
   const addSection = () => {
-    setSections([...sections, { 
-      title: "", 
-      content: [{ type: "paragraph", value: "", processedContent: null }] 
+    setSections([...sections, {
+      title: "",
+      content: [{ type: "paragraph", value: "", processedContent: null }]
     }]);
   };
   const updateSectionTitle = (sectionIndex, newTitle) => {
@@ -186,8 +311,8 @@ export default function BlogCreator() {
 
   const addContentItem = (sectionIndex, contentType) => {
     const newSections = [...sections];
-    newSections[sectionIndex].content.push({ 
-      type: contentType, 
+    newSections[sectionIndex].content.push({
+      type: contentType,
       value: contentType === "video" ? "" : contentType === "image" ? "" : "",
       processedContent: contentType === "paragraph" ? null : undefined,
     });
@@ -198,12 +323,12 @@ export default function BlogCreator() {
     const newSections = [...sections];
     const contentItem = newSections[sectionIndex].content[contentIndex];
     contentItem.value = newValue;
-    
+
     // Process paragraph links when content is updated
     if (contentItem.type === "paragraph") {
       contentItem.processedContent = processParagraphLinks(newValue);
     }
-    
+
     setSections(newSections);
   };
 
@@ -212,22 +337,22 @@ export default function BlogCreator() {
       setError("Please select a file and provide a name!");
       return;
     }
-  
+
     setUploading(true);
     setError(null);
-  
+
     try {
       const reader = new FileReader();
-  
+
       const fileDataPromise = new Promise((resolve, reject) => {
         reader.onload = () => resolve(reader.result.split(",")[1]);
         reader.onerror = () => reject(new Error("Failed to read file"));
         reader.readAsDataURL(file);
       });
-  
+
       const base64String = await fileDataPromise;
       const fileExtension = getFileExtension(file);
-  
+
       const response = await fetch("/api/blog_upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,18 +363,18 @@ export default function BlogCreator() {
           fileExtension: fileExtension
         }),
       });
-  
+
       const result = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(result.error || 'Upload failed');
       }
-  
+
       // Update the section content with the image URL
       const newSections = [...sections];
-      newSections[sectionIndex].content[contentIndex].value = result.file.imageUrl; // ✅ Assign uploaded image URL
+      newSections[sectionIndex].content[contentIndex].value = result.file.imageUrl;
       setSections(newSections);
-  
+
       // Clean up
       setFile(null);
       setImageName("");
@@ -257,14 +382,14 @@ export default function BlogCreator() {
       setPreviewUrl(null);
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = null;
-  
+
     } catch (err) {
       setError(err.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
   };
-  
+
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -360,73 +485,131 @@ export default function BlogCreator() {
     }
   };
 
+
   const validateAndPublish = async () => {
     setError("");
     setMessage("");
     setPublishing(true);
-  
+
     if (!slug || !category || !tags || !imageUrl) {
       setError("Slug, category, tags, and an uploaded main image are required.");
       setPublishing(false);
       return;
     }
-  
+
     if (!sections[0].title.trim() || !sections[0].content[0].value.trim()) {
       setError("At least one section with a title and content is required.");
       setPublishing(false);
       return;
     }
-  
+
     try {
       // Process all paragraphs to ensure links are detected
       const processedSections = sections.map((section) => {
         const processedContent = section.content.map((item) => {
           let processedItem = {
             type: item.type,
-            value: item.value ?? "", 
+            value: item.value ?? "",
           };
-  
+
           if (item.type === "paragraph") {
             processedItem.processedContent = processParagraphLinks(item.value || "");
           }
-  
+
           return processedItem;
         });
-  
+
         return {
           title: section.title || "Untitled Section",
           content: processedContent.filter((item) => item.value.trim() !== ""),
         };
       });
-  
+
       // Filter out empty sections
       const validSections = processedSections.filter(
         (section) => section.title.trim() && section.content.length > 0
       );
-  
+
       const blogData = {
+        categoryId: selectedCategory,
         category: category || "Uncategorized",
         tags: tags || "General",
         slug: slug || "untitled-blog",
         imageUrl: imageUrl || "",
         sections: validSections,
-        publishedBy: `${user.firstName || "Unknown"} ${user.lastName || "User"}`,
-        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
-  
-  
-      await addDoc(collection(firestore, "blogs"), blogData);
-  
-      setMessage("Blog published successfully!");
-      resetForm();
+
+      if (isEditing && selectedBlogId) {
+        // Update existing blog using the document ID directly
+        await updateDoc(doc(firestore, "blogs", selectedBlogId), blogData);
+        setMessage("Blog updated successfully!");
+      } else {
+        // Create new blog - Create the document first to get its ID
+        const docRef = await addDoc(collection(firestore, "blogs"), {
+          // Add temporary data to create the document
+          createdAt: serverTimestamp(),
+        });
+
+        // Use the Firestore-generated document ID as the blog ID
+        const newBlogData = {
+          ...blogData,
+          id: docRef.id,  // Use Firestore's document ID
+          publishedBy: `${user.firstName || "Unknown"} ${user.lastName || "User"}`,
+          createdAt: serverTimestamp(),
+          status: "Draft"
+        };
+
+        // Update the document with all the blog data
+        await updateDoc(docRef, newBlogData);
+        setMessage("Blog saved successfully! Update the status of Blog to Publish it");
+      }
+
+      // Refresh the blogs list
+      fetchBlogs();
+
+      if (!isEditing) {
+        resetForm();
+      }
     } catch (err) {
       console.error("Firestore error:", err);
-      setError("Failed to publish blog.");
+      setError(isEditing ? "Failed to update blog." : "Failed to draft blog.");
     } finally {
       setPublishing(false);
     }
   };
-  
+
+
+  // Add a delete blog function
+  const deleteBlog = async () => {
+    if (!selectedBlogId) {
+      setError("No blog selected for deletion.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this blog? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await deleteDoc(doc(firestore, "blogs", selectedBlogId));
+      setMessage("Blog deleted successfully!");
+
+      // Reset form and state
+      resetForm();
+      setIsEditing(false);
+      setSelectedBlogId("");
+
+      // Refresh blogs list
+      fetchBlogs();
+    } catch (err) {
+      console.error("Error deleting blog:", err);
+      setError("Failed to delete blog.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const resetForm = () => {
     setCategory("");
@@ -435,9 +618,9 @@ export default function BlogCreator() {
     setImageURL("");
     setUploadedImage(null);
     setPreviewUrl(null);
-    setSections([{ 
-      title: "", 
-      content: [{ type: "paragraph", value: "", processedContent: null }] 
+    setSections([{
+      title: "",
+      content: [{ type: "paragraph", value: "", processedContent: null }]
     }]);
   };
   const removeContentItem = (sectionIndex, contentIndex) => {
@@ -470,80 +653,81 @@ export default function BlogCreator() {
   };
 
 
-    // Component to render paragraph text with links
-    const ParagraphWithLinks = ({ processedContent }) => {
-      if (!processedContent || !processedContent.processed) {
-        return <p>{processedContent?.raw || ""}</p>;
-      }
-      
-      return (
-        <p>
-          {processedContent.processed.map((part, index) => {
-            if (part.type === 'text') {
-              return <span key={index}>{part.content}</span>;
-            } else if (part.type === 'link') {
-              return (
-                <Link 
-                  key={index} 
-                  href={part.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  {part.text}
-                </Link>
-              );
-            }
-            return null;
-          })}
-        </p>
-      );
-    };
+  // Component to render paragraph text with links
+  const ParagraphWithLinks = ({ processedContent }) => {
+    if (!processedContent || !processedContent.processed) {
+      return <p>{processedContent?.raw || ""}</p>;
+    }
 
-    
+    return (
+      <p>
+        {processedContent.processed.map((part, index) => {
+          if (part.type === 'text') {
+            return <span key={index}>{part.content}</span>;
+          } else if (part.type === 'link') {
+            return (
+              <Link
+                key={index}
+                href={part.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {part.text}
+              </Link>
+            );
+          }
+          return null;
+        })}
+      </p>
+    );
+  };
+
+
 
   return (
     <div className="h-[82vh] flex flex-col">
       {/* Static Top Section */}
       <div className="h-28 p-4 flex flex-col justify-center">
         <div className="h-20 p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold mb-4">Add a New Blog Post</h1>
+          <h1 className="text-xl font-bold mb-4">
+            {isEditing ? "Edit Blog Post" : "Add a New Blog Post"}
+          </h1>
           <div>
-            <button onClick={generateSlug} className="p-2 mb-2
-              mr-4 py-2 px-4
-              rounded-md border-0
-              text-sm font-semibold
-              bg-brandFadedGreen text-brandTextGreen
-              hover:bg-brandTextGreen hover:text-white">
-              Generate Link
-            </button>
-            <button onClick={addSection} className="p-2 mb-2
-              mr-4 py-2 px-4
-              rounded-md border-0
-              text-sm font-semibold
-              bg-brandFadedGreen text-brandTextGreen
-              hover:bg-brandTextGreen hover:text-white">
+            {isEditing ? (
+              <button
+                onClick={deleteBlog}
+                className="p-2 mb-2 mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold 
+              bg-red-100 text-red-700 hover:bg-red-700 hover:text-white"
+              >
+                Delete Blog
+              </button>
+            ) : (
+              <></>
+            )}
+            <button
+              onClick={addSection}
+              className="p-2 mb-2 mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold
+            bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
+            >
               Add New Section
             </button>
             {publishing ? (
-              <button className="p-2 mb-2
-                mr-4 py-2 px-4
-                rounded-md border-0
-                text-sm font-semibold
-                bg-brandFadedGreen text-brandTextGreen
-                hover:bg-brandTextGreen hover:text-white">
+              <button
+                className="p-2 mb-2 mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold
+              bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
+              >
                 <div className="flex justify-center">
-                  <div className="h-4 w-4 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  {isEditing ? "Updating..." : "Saving..."}
                 </div>
               </button>
             ) : (
-              <button onClick={validateAndPublish} className="p-2 mb-2
-                mr-4 py-2 px-4
-                rounded-md border-0
-                text-sm font-semibold
-                bg-brandFadedGreen text-brandTextGreen
-                hover:bg-brandTextGreen hover:text-white">
-                Publish Blog
+              <button
+                onClick={validateAndPublish}
+                className="p-2 mb-2 mr-4 py-2 px-4 rounded-md border-0 text-sm font-semibold
+              bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
+              >
+                {isEditing ? "Update Blog" : "Save Blog"}
               </button>
             )}
           </div>
@@ -554,20 +738,43 @@ export default function BlogCreator() {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        {/* Blog selection dropdown - New */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {isEditing ? "Currently Editing:" : "Select a Blog to Edit"}
+          </label>
+          <select
+            value={selectedBlogId}
+            onChange={(e) => {
+              setSelectedBlogId(e.target.value);
+              loadBlog(e.target.value);
+            }}
+            className="block text-sm font-medium text-gray-500 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-3"
+          >
+            <option value="">Create a new blog</option>
+            {blogs.map(blog => (
+              <option key={blog.id} value={blog.id}>
+                {blog.sections && blog.sections[0] && blog.sections[0].title ?
+                  blog.sections[0].title : "Untitled Blog"}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <label className="block text-sm font-medium text-gray-700 mb-2">Select a Blog Category</label>
-        <select 
-         value={selectedCategory}
-         onChange={handleCategorySelect}
+        <select
+          value={selectedCategory}
+          onChange={handleCategorySelect}
           className="block text-sm font-medium text-gray-500 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-3"
         >
           <option value="">Select a category</option>
           {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
           ))}
         </select>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
@@ -653,12 +860,22 @@ export default function BlogCreator() {
               <h3 className="text-sm font-medium mb-2">Uploaded Main Image:</h3>
               <div className="space-y-2">
                 <div className="relative h-48 w-full">
-                  <Image
-                    src={uploadedImage?.imageUrl}
-                    alt={uploadedImage.name}
-                    fill
-                    className="object-contain rounded-lg"
-                  />
+                  {isEditing ? <>
+                    <Image
+                      src={uploadedImage?.imageUrl || uploadedImage}
+                      alt={uploadedImage.name}
+                      fill
+                      className="object-contain rounded-lg"
+                    />
+                  </> : <>
+                    <Image
+                      src={uploadedImage?.imageUrl}
+                      alt={uploadedImage.name}
+                      fill
+                      className="object-contain rounded-lg"
+                    />
+                  </>}
+
                 </div>
                 <div className="text-sm">
                   <p>Name: {uploadedImage.name}</p>
@@ -666,27 +883,38 @@ export default function BlogCreator() {
               </div>
             </div>
           )}
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Main Image URL</label>
-            <input
-              type="text"
-              value={uploadedImage?.imageUrl || ""}
-              onChange={(e) => setImageURL(e.target.value)}
-              className="block text-sm font-medium text-gray-500 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
-            />
+            {isEditing ? <>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Main Image URL</label>
+              <input
+                type="text"
+                value={uploadedImage?.imageUrl || uploadedImage}
+                onChange={(e) => setImageURL(e.target.value)}
+                className="block text-sm font-medium text-gray-500 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </> : <>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Main Image URL</label>
+              <input
+                type="text"
+                value={uploadedImage?.imageUrl || ""}
+                onChange={(e) => setImageURL(e.target.value)}
+                className="block text-sm font-medium text-gray-500 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </>}
+
           </div>
 
           {/* Blog Sections */}
           <div className="mt-8">
             <h2 className="text-lg font-bold mb-4">Blog Content Sections</h2>
-            
+
             {sections.map((section, sectionIndex) => (
               <div key={sectionIndex} className="border p-4 mb-6 rounded-md bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-md font-semibold">Section {sectionIndex + 1}</h3>
                   {sections.length > 1 && (
-                    <button 
+                    <button
                       onClick={() => removeSection(sectionIndex)}
                       className="text-red-500 hover:text-red-700"
                     >
@@ -694,7 +922,7 @@ export default function BlogCreator() {
                     </button>
                   )}
                 </div>
-                
+
                 <input
                   type="text"
                   placeholder="Enter Section Title"
@@ -702,28 +930,28 @@ export default function BlogCreator() {
                   onChange={(e) => updateSectionTitle(sectionIndex, e.target.value)}
                   className="block p-2 mb-4 text-md font-medium text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
-                
+
                 <div className="flex space-x-2 mb-4">
-                  <button 
+                  <button
                     onClick={() => addContentItem(sectionIndex, "paragraph")}
                     className="p-2 py-2 px-4 rounded-md border-0 text-sm font-semibold bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
                   >
                     Add Paragraph
                   </button>
-                  <button 
+                  <button
                     onClick={() => addContentItem(sectionIndex, "image")}
                     className="p-2 py-2 px-4 rounded-md border-0 text-sm font-semibold bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
                   >
                     Add Image
                   </button>
-                  <button 
+                  <button
                     onClick={() => addContentItem(sectionIndex, "video")}
                     className="p-2 py-2 px-4 rounded-md border-0 text-sm font-semibold bg-brandFadedGreen text-brandTextGreen hover:bg-brandTextGreen hover:text-white"
                   >
                     Add Video
                   </button>
                 </div>
-                
+
                 {section.content.map((content, contentIndex) => (
                   <div key={contentIndex} className="mb-4 p-3 border rounded-md bg-white">
                     <div className="flex justify-between items-center mb-2">
@@ -739,31 +967,36 @@ export default function BlogCreator() {
                         </button>
                       )}
                     </div>
-                    
+
                     {content.type === "paragraph" && (
                       <div>
                         <textarea
                           rows="5"
-                          placeholder="Enter paragraph text (URLs will be automatically detected as links)"
+                          placeholder="Enter paragraph text. For custom links use format: [link text](URL)"
                           value={content.value}
                           onChange={(e) => updateContentItem(sectionIndex, contentIndex, e.target.value)}
                           className="block p-2 text-sm font-medium text-gray-700 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
                         />
-                        
+
+                        <div className="text-xs text-gray-500 mb-2">
+                          <p>• URLs are automatically detected as links</p>
+                          <p>• For custom link text use format: [Click here](https://example.com)</p>
+                        </div>
+
                         {/* Preview section showing detected links */}
                         {content.value && (
                           <div className="mt-2 border-t pt-2">
                             <h4 className="text-sm font-medium text-gray-700 mb-1">Preview with Links:</h4>
                             <div className="p-2 bg-gray-50 rounded">
-                              <ParagraphWithLinks 
-                                processedContent={processParagraphLinks(content.value)} 
+                              <ParagraphWithLinks
+                                processedContent={processParagraphLinks(content.value)}
                               />
                             </div>
                           </div>
                         )}
                       </div>
                     )}
-                    
+
                     {content.type === "image" && (
                       <div className="space-y-3">
                         <div className="flex items-center space-x-3">
@@ -779,7 +1012,7 @@ export default function BlogCreator() {
                             hover:file:bg-blue-200"
                             disabled={uploading}
                           />
-                          
+
                           <input
                             type="text"
                             placeholder="Image name"
@@ -787,7 +1020,7 @@ export default function BlogCreator() {
                             onChange={(e) => setImageName(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                           />
-                          
+
                           <button
                             onClick={() => uploadSectionImage(sectionIndex, contentIndex)}
                             disabled={uploading || !file || !imageName.trim()}
@@ -799,7 +1032,7 @@ export default function BlogCreator() {
                             {uploading ? "Uplaoding..." : "Upload"}
                           </button>
                         </div>
-                        
+
                         {previewUrl && (
                           <div className="relative h-36 w-full">
                             <Image
@@ -810,7 +1043,7 @@ export default function BlogCreator() {
                             />
                           </div>
                         )}
-                        
+
                         {content.value && (
                           <div>
                             <p className="text-sm font-medium mb-2">Current Image:</p>
@@ -824,7 +1057,7 @@ export default function BlogCreator() {
                             </div>
                           </div>
                         )}
-                        
+
                         <input
                           type="text"
                           readOnly
@@ -835,7 +1068,7 @@ export default function BlogCreator() {
                         />
                       </div>
                     )}
-                    
+
                     {content.type === "video" && (
                       <div className="space-y-2">
                         <input

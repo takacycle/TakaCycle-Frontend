@@ -160,8 +160,8 @@ function HomePage() {
             {expandedMenu === "Blog" && (
               <div className="pl-6 flex flex-col space-y-1">
                 <button onClick={() => setActivePage("Blog Categories")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Blog Categories" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Blog categories</button>
-                <button onClick={() => setActivePage("Create Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Create Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create Blog</button>
-                <button onClick={() => setActivePage("Edit Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Edit Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Edit Blog</button>
+                <button onClick={() => setActivePage("Create / Update Blog")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Create / Update Blog" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create / Update Blog</button>
+                <button onClick={() => setActivePage("Blog List")} className={`p-2 text-left text-sm font-medium text-gray-700 ${activePage === "Blog List" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Blog List</button>
             
               </div>
             )}
@@ -180,7 +180,7 @@ function HomePage() {
             {expandedMenu === "Project" && (
               <div className="pl-6 flex flex-col text-sm font-medium text-gray-700 space-y-1">
                 <button onClick={() => setActivePage("Create Project")} className={`p-2 text-left ${activePage === "Create Project" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Create Project</button>
-                <button onClick={() => setActivePage("Edit Project")} className={`p-2 text-left ${activePage === "Edit Project" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Edit Project</button>
+                <button onClick={() => setActivePage("Proect List")} className={`p-2 text-left ${activePage === "Project List" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Project List</button>
                 <button onClick={() => setActivePage("Update Project Page")} className={`p-2 text-left ${activePage === "Update Project Page" ? "bg-brandTextGreen text-white rounded-md" : "bg-brandFadedGreen text-brandTextGreen rounded-md"}`}>Update Project Page</button>
               </div>
             )}
@@ -220,8 +220,8 @@ function HomePage() {
           <div className="p-6 mt-16">
             {activePage === "Dashboard" && <Dashboard />}
             {activePage === "Blog Categories" && <BlogCategory />}
-            {activePage === "Create Blog" && <CreateBlog />}
-            {activePage === "Edit Blog" && <EditBlog />}
+            {activePage === "Create / Update Blog" && <CreateBlog />}
+            {activePage === "Blog List" && <EditBlog />}
           </div>
         </div>
       </div>
