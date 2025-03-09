@@ -36,13 +36,13 @@ function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
   
-      // ✅ Force Firebase to refresh user info
+
       await user.reload();
   
-      console.log("✅ User logged in:", user.email, "UID:", user.uid);
+
   
       if (!user.emailVerified) {
-        setError('⚠️ Please verify your email before logging in.');
+        setError('Please verify your email before logging in.');
         setLoading(false);
         return;
       }
@@ -50,20 +50,20 @@ function LoginPage() {
       const userDocRef = doc(firestore, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
   
-      console.log("📌 Checking if user document exists...");
+
   
-      // ✅ Initialize userData properly
+
       let userData = { firstName: "N/A", lastName: "N/A", lastLogin: null };
   
       if (!userDoc.exists()) {
-        console.log("🚀 User document does not exist, creating a new one...");
+
         const registrationData = localStorage.getItem("registrationData");
   
         if (registrationData) {
           try {
             userData = JSON.parse(registrationData);
           } catch (error) {
-            console.error("⛔ Error parsing registration data:", error);
+            console.error("Error parsing registration data:", error);
           }
         }
   
@@ -79,9 +79,9 @@ function LoginPage() {
         localStorage.removeItem("registrationData");
   
       } else {
-        console.log("🔄 User document exists, updating status, lastLogin, and emailVerified...");
+
         
-        // ✅ Extract user data from existing Firestore document
+
         const existingUserData = userDoc.data();
         userData = {
           firstName: existingUserData.firstName || "N/A",
@@ -95,10 +95,10 @@ function LoginPage() {
           emailVerified: user.emailVerified,
         }, { merge: true });
   
-        console.log("✅ User document updated successfully!");
+
       }
   
-      // ✅ Save user info to localStorage
+
       localStorage.setItem(
         'loggedIn',
         JSON.stringify({
@@ -108,13 +108,13 @@ function LoginPage() {
         })
       );
   
-      console.log("📝 User data saved to localStorage:", userData);
+
   
       // Redirect the user after successful login
       router.push('/portal');
   
     } catch (error) {
-      console.error("🔥 Login error:", error);
+      console.error("Login error:", error);
       setError(error.message);
     } finally {
       setLoading(false);

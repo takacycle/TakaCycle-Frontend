@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { firestore } from "@/firebase/firebase";
 import { collection, addDoc, getDocs,doc,updateDoc,deleteDoc, serverTimestamp } from "@firebase/firestore"
-import Link from "next/link"; // Import Link from Next.js
+import Link from "next/link"; 
 
 export default function BlogCreator() {
   const [category, setCategory] = useState("");
@@ -26,7 +26,7 @@ export default function BlogCreator() {
   const [isEditing, setIsEditing] = useState(false);
 
 
-  console.log(selectedBlogId)
+
 
   // New data structure for sections with different content types
   const [sections, setSections] = useState([

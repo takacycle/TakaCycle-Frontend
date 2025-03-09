@@ -112,8 +112,7 @@ const handleCategorySelect = (e) => {
       createdBy: selectedCat.createdBy
     });
     
-    // Instead of logging formData here, we can log the actual selectedCat
-    console.log("Selected category data:", selectedCat);
+
   }
 };
 
