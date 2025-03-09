@@ -13,7 +13,7 @@ function Navbar() {
     { name: "Our Story", path: "/our-story" },
     { name: "Our Team", path: "/our-team" },
     { name: "Our Project", path: "/our-project" },
-    { name: "Blog", path: "/blog" },
+    { name: "Our Blog", path: "/blog" },
   ];
 
   const toggleMenu = () => {

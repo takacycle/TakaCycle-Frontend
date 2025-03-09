@@ -13,23 +13,23 @@ function EditBlog() {
     fetchBlogs();
   }, []);
 
-    useEffect(() => {
-      if (error) {
-        const timer = setTimeout(() => {
-          setError(null);
-        }, 10000);
-        return () => clearTimeout(timer);
-      }
-    }, [error]);
-  
-    useEffect(() => {
-      if (message) {
-        const timer = setTimeout(() => {
-          setMessage(null);
-        }, 10000);
-        return () => clearTimeout(timer);
-      }
-    }, [message]);
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   // Function to fetch all blogs
   const fetchBlogs = async () => {
@@ -59,7 +59,7 @@ function EditBlog() {
         status: newStatus,
         updatedAt: serverTimestamp()
       });
-      
+
       setMessage(`Blog status updated to ${newStatus}`);
       fetchBlogs(); // Refresh the blog list
     } catch (err) {
@@ -91,8 +91,14 @@ function EditBlog() {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <p>Loading blogs...</p>
+            <div className="flex h-80 items-center justify-center">
+              {/* Spinner animation */}
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-green-700 font-semibold text-lg">
+                  Loading Blogs...
+                </p>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -123,9 +129,8 @@ function EditBlog() {
                             {truncateTitle(blog.sections && blog.sections[0] ? blog.sections[0].title : 'No title')}
                           </td>
                           <td className="py-4 px-6 text-sm">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                            }`}>
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                              }`}>
                               {status}
                             </span>
                           </td>
@@ -134,14 +139,14 @@ function EditBlog() {
                               {status === 'Draft' ? (
                                 <button
                                   className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded text-xs"
-                                  onClick={() => window.open(`/blog/draft/${blog.id}`, '_blank')}
+                                  onClick={() => window.open(`portal/blog/draft/${blog.id}`, '_blank')}
                                 >
                                   View Draft
                                 </button>
                               ) : (
                                 <button
                                   className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs"
-                                  onClick={() => window.open(`/blog/preview/${blog.id}`, '_blank')}
+                                // onClick={() => window.open(`/blog/preview/${blog.id}`, '_blank')}
                                 >
                                   View Published
                                 </button>
@@ -150,11 +155,10 @@ function EditBlog() {
                           </td>
                           <td className="py-4 px-6 text-sm text-gray-500">
                             <button
-                              className={`font-bold py-1 px-3 rounded text-xs ${
-                                status === 'Draft' 
-                                  ? 'bg-green-500 hover:bg-green-600 text-white' 
+                              className={`font-bold py-1 px-3 rounded text-xs ${status === 'Draft'
+                                  ? 'bg-green-500 hover:bg-green-600 text-white'
                                   : 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                              }`}
+                                }`}
                               onClick={() => toggleBlogStatus(blog.id, status)}
                             >
                               {status === 'Draft' ? 'Set as Published' : 'Set as Draft'}

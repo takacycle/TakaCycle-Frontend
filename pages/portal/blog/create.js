@@ -492,6 +492,7 @@ export default function BlogCreator() {
     setPublishing(true);
 
     if (!slug || !category || !tags || !imageUrl) {
+      console.log(category)
       setError("Slug, category, tags, and an uploaded main image are required.");
       setPublishing(false);
       return;
